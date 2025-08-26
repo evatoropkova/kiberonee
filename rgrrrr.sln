@@ -1,31 +1,419 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.13.35919.96 d17.13
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rgrrrr", "rgrrrr\rgrrrr.vcxproj", "{DB2C3531-82D9-4240-946A-F8E984C8A867}"
-EndProject
-Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
-		Release|x64 = Release|x64
-		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{DB2C3531-82D9-4240-946A-F8E984C8A867}.Debug|x64.ActiveCfg = Debug|x64
-		{DB2C3531-82D9-4240-946A-F8E984C8A867}.Debug|x64.Build.0 = Debug|x64
-		{DB2C3531-82D9-4240-946A-F8E984C8A867}.Debug|x86.ActiveCfg = Debug|Win32
-		{DB2C3531-82D9-4240-946A-F8E984C8A867}.Debug|x86.Build.0 = Debug|Win32
-		{DB2C3531-82D9-4240-946A-F8E984C8A867}.Release|x64.ActiveCfg = Release|x64
-		{DB2C3531-82D9-4240-946A-F8E984C8A867}.Release|x64.Build.0 = Release|x64
-		{DB2C3531-82D9-4240-946A-F8E984C8A867}.Release|x86.ActiveCfg = Release|Win32
-		{DB2C3531-82D9-4240-946A-F8E984C8A867}.Release|x86.Build.0 = Release|Win32
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {4244B2D9-7B8C-4C6F-847A-232ACFBC8090}
-	EndGlobalSection
-EndGlobal
+#include <iostream>
+#include <windows.h>
+#include <iomanip>
+#include <string>
+#include <conio.h>
+#include <cmath>
+#include <math.h>
+#include <locale.h>
+#define UP 72
+#define DOWN 80
+#define ESC 27
+#define ENTER 13
+#define graph1(x) (4 * exp(-(fabs(x))) - 1)
+#define graph2(x) (cos(x))
+using namespace std;
+
+HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+void GoToXY(short x, short y)
+{
+	SetConsoleCursorPosition(hStdOut, { x, y });
+}
+void ConsoleCursorVisible(bool show, short size)
+{
+	CONSOLE_CURSOR_INFO structCursorInfo;
+	GetConsoleCursorInfo(hStdOut, &structCursorInfo);
+	structCursorInfo.bVisible = show;
+	structCursorInfo.dwSize = size;
+	SetConsoleCursorInfo(hStdOut, &structCursorInfo);
+}
+
+void Table()
+{
+	setlocale(LC_ALL, "RUS");
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+	printf("Таблица\n");
+	int n = 15;
+	int i, a = -1, b = 5;
+	float k, dx, x[15], F1[15], F2[15], F1max, F1min, F2max, F2min;
+	dx = fabs(b - a) / (n - 1);
+	x[0] = a;
+	printf(" ____________________________________\n");
+	printf("| n |    x   |     F1    |     F2    |\n");
+	printf("|---|--------|-----------|-----------|\n");
+	for (i = 0; i < n; i++)
+	{
+		F1[i] = 4 * exp(-(fabs(x[i]))) - 1;
+		F2[i] = cos(x[i]);
+		x[i + 1] = x[i] + dx;
+	}
+
+	F1min = F1[0];
+	F2min = F2[0];
+	F1max = F1[0];
+	F2max = F2[0];
+
+	for (i = 0; i < n; i++)
+	{
+		if (F1[i] < F1min) F1min = F1[i];
+		if (F1[i] > F1max) F1max = F1[i];
+		if (F2[i] < F2min) F2min = F2[i];
+		if (F2[i] > F2max) F2max = F2[i];
+	}
+
+	for (i = 0; i < n; i++)
+	{
+
+		printf("|%3d|%8.3f|", i + 1, x[i]);
+		if (F1[i] == F1min)
+		{
+			SetConsoleTextAttribute(hStdOut, FOREGROUND_RED | FOREGROUND_INTENSITY);
+			printf_s("%11.8f", F1min);
+			SetConsoleTextAttribute(hStdOut, FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+			printf_s("|");
+		}
+		else
+			if (F1[i] == F1max)
+			{
+				SetConsoleTextAttribute(hStdOut, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+				printf("%11.8f", F1max);
+				SetConsoleTextAttribute(hStdOut, FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+				printf("|");
+			}
+			else
+				printf("%11.8f|", F1[i]);
+		if (F2[i] == F2min)
+		{
+			SetConsoleTextAttribute(hStdOut, FOREGROUND_RED | FOREGROUND_INTENSITY);
+			printf("%11.8f", F2min);
+			SetConsoleTextAttribute(hStdOut, FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+			printf("|\n");
+		}
+		else
+			if (F2[i] == F2max)
+			{
+				SetConsoleTextAttribute(hStdOut, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+				printf("%11.8f", F2max);
+				SetConsoleTextAttribute(hStdOut, FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+				printf("|\n");
+			}
+			else
+				printf("%11.8f|\n", F2[i]);
+	}
+	printf("|___|________|___________|___________|\n\n");
+	SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+	printf_s("Минимальное значение функций выделено \x1b[31mкрасным\x1b[0m\n");
+	SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+	printf_s("Максимальное значение функций выделено \x1b[32mзеленым\x1b[0m\n");
+	SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+	_getch();
+}
+void Graph()
+{
+	system("cls");
+	bool first = true;
+	bool second = true;
+	HWND hwn = GetConsoleWindow();
+	HDC hdc = GetDC(hwn);
+	HANDLE color = GetStdHandle(STD_OUTPUT_HANDLE);
+	COORD position;
+	position.X = 30;
+	position.Y = 20;
+	SetConsoleCursorPosition(color, position);
+	SetConsoleTextAttribute(color, 4);
+	printf("F1 = 4 * exp(-(fabs(x[i]))) - 1");
+	SetConsoleTextAttribute(color, 15);
+	position.X = 30;
+	position.Y = 5;
+	SetConsoleCursorPosition(color, position);
+	SetConsoleTextAttribute(color, 9);
+	printf("F2 = cos(x[i])");
+	SetConsoleTextAttribute(color, 15);
+	position.X = 67;
+	position.Y = 16;
+	SetConsoleCursorPosition(color, position);
+	printf("x");
+	position.X = 18;
+	position.Y = 1;
+	SetConsoleCursorPosition(color, position);
+	printf("y");
+	float x;
+	HDC draw = GetDC(GetConsoleWindow());
+	HPEN pen = CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
+	Sleep(50);
+
+	SelectObject(draw, pen);
+	MoveToEx(draw, 0, 350, NULL);
+	LineTo(draw, 440, 350);
+	MoveToEx(draw, 440, 350, NULL);
+	LineTo(draw, 435, 345);
+	MoveToEx(draw, 440, 350, NULL);
+	LineTo(draw, 435, 355);
+	MoveToEx(draw, 220, 25, NULL);
+	LineTo(draw, 220, 470);
+	MoveToEx(draw, 220, 25, NULL);
+	LineTo(draw, 225, 30);
+	MoveToEx(draw, 220, 25, NULL);
+	LineTo(draw, 215, 30);
+	DeleteObject(pen);
+	for (x = -1.0f; x <= 5.0f; x += 0.01f)
+	{
+		SetPixel(hdc, 100 * x + 220, 350 - 9 * graph1(x), RGB(255, 0, 0));
+		if (first)
+		{
+			pen = CreatePen(PS_DASHDOT, 2, RGB(255, 0, 0));
+			SelectObject(hdc, pen);
+			MoveToEx(hdc, 100 * x + 220, 350 - 9 * graph1(x), NULL);
+			first = false;
+		}
+		else LineTo(hdc, 100 * x + 220, 350 - 9 * graph1(x));
+	}
+	for (x = -1.0f; x <= 5.0f; x += 0.01f)
+	{
+		SetPixel(hdc, 100 * x + 220, 350 - 9 * graph2(x), RGB(0, 100, 255));
+		if (second)
+		{
+			pen = CreatePen(PS_DASHDOT, 2, RGB(0, 100, 255));
+			SelectObject(hdc, pen);
+			MoveToEx(hdc, 100 * x + 220, 350 - 9 * graph2(x), NULL);
+			second = false;
+		}
+		else LineTo(hdc, 100 * x + 220, 350 - 9 * graph2(x));
+	}
+	Sleep(10);
+	_getch();
+}
+double DivisionMethod(double a, double b, double e)
+{
+	double answer;
+	do
+	{
+		answer = (a + b) / 2;
+		if (((4 * answer - sin(2 * answer) - 3) * (4 * a - sin(2 * a) - 3)) < 0)
+			b = answer;
+		else a = answer;
+	} while (abs(a - b) >= e);
+	return answer;
+}
+double ChordMethod(double a, double b, double e)
+{
+	double answer;
+	do
+	{
+		answer = a - (4 * a - sin(2 * a) - 3) * (b - a) / ((4 * b - sin(2 * b) - 3) - (4 * a - sin(2 * a) - 3));
+		if (((4 * a - sin(2 * a) - 3) * (4 * answer - sin(2 * answer) - 3)) < 0)
+		{
+			b = answer;
+		}
+		else
+		{
+			a = answer;
+		}
+	} while (abs((4 * answer - sin(2 * answer) - 3)) >= e);
+	return answer;
+}
+void Uravnenie()
+{
+	system("cls");
+	setlocale(LC_ALL, "RUS");
+	double a, b, e = 0.001;
+	cout << "Введите левую и правую границы:" << endl;
+	cin >> a >> b;
+	cout << "Ответ (решение с помощью метода половинного деления):" << DivisionMethod(a, b, e) << endl;
+	cout << "Ответ (решение с помощью метода хорд):" << ChordMethod(a, b, e);
+	_getch();
+}
+double TrapeziumMethod(double a, double b, double n)
+{
+	double s = a * a * exp(-a) + b * b * exp(-b);
+	double h = (b - a) / n;
+	for (int i = 1; i <= n - 1; i++)
+	{
+		double x;
+		x = a + i * h;
+		s += 2 * x * x * exp(-x);
+	}
+	s *= h / 2;
+	return s;
+}
+double RectangleMethod(double a, double b, double n)
+{
+	double s = 0;
+	double h = (b - a) / n;
+	for (int i = 0; i <= n - 1;i++)
+	{
+		double x;
+		x = a + h / 2 + i * h;
+		s += x * x * exp(-x);
+	}
+	s *= h;
+	return s;
+}
+void Integral()
+{
+	system("cls");
+	setlocale(LC_ALL, "RUS");
+	double  a, b, n;
+	cout << "Введите левую и правую границы:" << endl;
+	cin >> a >> b;
+	cout << "Введите количество разбиений:" << endl;
+	cin >> n;
+	cout << "Ответ (решение с помощью метода трапеций):" << TrapeziumMethod(a, b, n) << endl;
+	cout << "Ответ (решение с помощью метода прямоугольников):" << RectangleMethod(a, b, n);
+	_getch();
+}
+void Animation()
+{
+	int i, j, t, p, u;
+	system("cls");
+	HDC hDC = GetDC(GetConsoleWindow());
+	for (i = 0; i < 2000; i += 20)
+	{
+		system("color 11");
+		for (j = 150; j < 2000; j += 20)
+		{
+			i = rand() % 600;
+			j = rand() % 600;
+			t = rand() % 600;
+			p = rand() % 600;
+			u = rand() % 600;
+			HBRUSH Region = CreateSolidBrush(RGB(t, p, u));
+			system("color B6");
+			SelectObject(hDC, Region);
+			Ellipse(hDC, j, i, j + 100, i + 100);
+			Ellipse(hDC, j, i, j + 80, i + 80);
+			Ellipse(hDC, j, i, j + 70, i + 70);
+			Ellipse(hDC, j, i, j + 60, i + 60);
+			Ellipse(hDC, j, i, j + 50, i + 50);
+			Ellipse(hDC, j, i, j + 40, i + 40);
+			Ellipse(hDC, j, i, j + 30, i + 30);
+			Ellipse(hDC, j, i, j + 15, i + 15);
+			DeleteObject(Region);
+			Sleep(1000);
+			system("cls");
+		}
+		system("cls");
+		if (_getch && _kbhit() == ENTER) break;
+	}
+}
+void Information()
+{
+	system("cls");
+	setlocale(LC_ALL, "RUS");
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+	cout << "\n\n\n\n\n\n\n\t\t\t\t\x1b[32m_______________________________________________\n\n" << endl;
+	cout << "\t\t\t\t\x1b[32mРасчётно-графическая работа по программированию\x1b[0m\t\t\n\n" << endl;
+	SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+	cout << "\t\t\t\tВыполнила Торопкова Ева Олеговна\n\n" << endl;
+	cout << "\t\t\t\tГруппа: ПИ-232\n";
+	cout << "\t\t\t\tФИТиКС\t\t\n" << endl;
+	cout << "\t\t\t\tОмГТУ\t\t\n" << endl;
+	cout << "\t\t\t\t\x1b[32m_______________________________________________\n\n" << endl;
+	SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+	_getch();
+}
+
+int main()
+{
+	SetConsoleTitle(L"Расчётно-графическая работа Торопковой Евы");
+	system("cls");
+	setlocale(LC_ALL, "RUS");
+	ConsoleCursorVisible(false, 100);
+	string Menu[] = { "Таблица", "График", "Уравнение", "Интеграл", "Анимация", "Об авторе", "Выход" };
+	int active_menu = 0;
+	char ch;
+	while (true)
+	{
+		int x = 50, y = 12;
+		GoToXY(x, y);
+
+		for (int i = 0; i < size(Menu); i++)
+		{
+			if (i == active_menu) 	SetConsoleTextAttribute(hStdOut, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+			else 	SetConsoleTextAttribute(hStdOut, FOREGROUND_GREEN);
+			GoToXY(x, y++);
+			cout << Menu[i] << endl;
+		}
+		ch = _getch();
+		if (ch == -32) ch = _getch();
+		switch (ch)
+		{
+		case ESC:
+			exit(0);
+		case UP:
+			if (active_menu > 0)
+				--active_menu;
+			break;
+		case DOWN:
+			if (active_menu < size(Menu) - 1)
+				++active_menu;
+			break;
+		case ENTER:
+			switch (active_menu)
+			{
+			case 0:
+				system("cls");
+				GoToXY(x, y);
+				SetConsoleTextAttribute(hStdOut, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+				Table();
+				_getch();
+				system("cls");
+				break;
+
+			case 1:
+				system("cls");
+				GoToXY(x, y);
+				SetConsoleTextAttribute(hStdOut, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+				Graph();
+				_getch();
+				system("cls");
+				break;
+
+			case 2:
+				system("cls");
+				GoToXY(x, y);
+				SetConsoleTextAttribute(hStdOut, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+				Uravnenie();
+				_getch();
+				system("cls");
+				break;
+
+			case 3:
+				system("cls");
+				GoToXY(x, y);
+				SetConsoleTextAttribute(hStdOut, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+				Integral();
+				_getch();
+				system("cls");
+				break;
+
+			case 4:
+				system("cls");
+				GoToXY(x, y);
+				SetConsoleTextAttribute(hStdOut, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+				Animation();
+				_getch();
+				system("cls");
+				break;
+
+			case 5:
+				system("cls");
+				Information();
+				_getch();
+				system("cls");
+				break;
+
+			case 6:
+				system("cls");
+				exit(0);
+			}
+			break;
+
+		default:
+			cout << "Код " << (int)ch << endl;
+		}
+	}
+}
+
