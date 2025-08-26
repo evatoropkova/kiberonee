@@ -1,25 +1,221 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.13.35919.96 d17.13
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Laaba_10", "Laaba_10\Laaba_10.csproj", "{9788E63C-2585-4E14-94BD-19B877FE56B3}"
-EndProject
-Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{9788E63C-2585-4E14-94BD-19B877FE56B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9788E63C-2585-4E14-94BD-19B877FE56B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9788E63C-2585-4E14-94BD-19B877FE56B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9788E63C-2585-4E14-94BD-19B877FE56B3}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {3C2DEF54-BF04-4A85-BCF5-BDC07425629B}
-	EndGlobalSection
-EndGlobal
+﻿using System;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+
+class ImageProcessor
+{
+    static async Task Main(string[] args)
+    {
+        try
+        {
+            Console.WriteLine("Запуск обработки изображений...");
+
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            string inputFolder = Path.Combine(baseDirectory, "InputImages");
+            string outputFolder = Path.Combine(baseDirectory, "ProcessedImages");
+
+            Directory.CreateDirectory(inputFolder);
+            Directory.CreateDirectory(outputFolder);
+
+            Console.WriteLine($"Исходные изображения: {inputFolder}");
+            Console.WriteLine($"Выходные изображения: {outputFolder}");
+
+            var imageFiles = GetSupportedImageFiles(inputFolder);
+
+            if (imageFiles.Length == 0)
+            {
+                Console.WriteLine("Не найдено поддерживаемых изображений (.jpg, .jpeg, .png)");
+                Console.WriteLine("Поместите изображения в папку InputImages и перезапустите программу");
+                Console.ReadKey();
+                return;
+            }
+
+            Console.WriteLine($"Найдено {imageFiles.Length} изображений");
+
+            using var cts = new CancellationTokenSource();
+
+            var processingTask = ProcessImagesAsync(imageFiles, outputFolder, cts.Token);
+
+            Console.WriteLine("Нажмите 'C' для отмены...");
+            var keyTask = Task.Run(() => MonitorCancelKey(cts));
+
+            try
+            {
+                var result = await processingTask;
+                Console.WriteLine($"\nОбработка завершена!\nУспешно: {result.successful}\nОшибки: {result.failed}");
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("\nОбработка отменена");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\nКритическая ошибка: {ex.Message}");
+            }
+
+            Console.WriteLine("Нажмите любую клавишу для выхода...");
+            Console.ReadKey();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Критическая ошибка: {ex}");
+            Console.ReadKey();
+        }
+    }
+
+    static string[] GetSupportedImageFiles(string folder)
+    {
+        try
+        {
+            return Directory.GetFiles(folder)
+                .Where(f => {
+                    var ext = Path.GetExtension(f).ToLower();
+                    return ext == ".jpg" || ext == ".jpeg" || ext == ".png";
+                })
+                .ToArray();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при чтении файлов: {ex.Message}");
+            return Array.Empty<string>();
+        }
+    }
+
+    static void MonitorCancelKey(CancellationTokenSource cts)
+    {
+        while (!cts.IsCancellationRequested)
+        {
+            if (Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.C)
+            {
+                cts.Cancel();
+                Console.WriteLine("\nОтмена...");
+                break;
+            }
+            Thread.Sleep(100);
+        }
+    }
+
+    static async Task<(int successful, int failed)> ProcessImagesAsync(
+        string[] imageFiles,
+        string outputFolder,
+        CancellationToken token)
+    {
+        int successful = 0, failed = 0;
+
+        var batches = SplitIntoBatches(imageFiles, Math.Max(1, imageFiles.Length / Environment.ProcessorCount));
+
+        var tasks = batches.Select(batch => Task.Run(() =>
+        {
+            int s = 0, f = 0;
+            foreach (var file in batch)
+            {
+                if (token.IsCancellationRequested)
+                    break;
+
+                try
+                {
+                    if (ProcessImage(file, outputFolder, token))
+                    {
+                        Interlocked.Increment(ref successful);
+                        Interlocked.Increment(ref s);
+                        Console.WriteLine($"Обработано: {Path.GetFileName(file)}");
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    Interlocked.Increment(ref failed);
+                    Interlocked.Increment(ref f);
+                    Console.WriteLine($"Ошибка при обработке {Path.GetFileName(file)}: {ex.Message}");
+                }
+            }
+            return (s, f);
+        }, token));
+
+        await Task.WhenAll(tasks);
+        return (successful, failed);
+    }
+
+    static bool ProcessImage(string inputPath, string outputFolder, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        if (!File.Exists(inputPath))
+            return false;
+
+        try
+        {
+            using var image = Image.FromFile(inputPath);
+            var format = GetImageFormat(inputPath);
+
+            using var bitmap = new Bitmap(image.Width / 2, image.Height / 2);
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                g.DrawImage(image, 0, 0, bitmap.Width, bitmap.Height);
+            }
+
+            ApplyGrayscaleFilter(bitmap);
+
+            token.ThrowIfCancellationRequested();
+
+            string outputFileName = $"{Path.GetFileNameWithoutExtension(inputPath)}_processed{Path.GetExtension(inputPath)}";
+            string outputPath = Path.Combine(outputFolder, outputFileName);
+
+            bitmap.Save(outputPath, format);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка при обработке файла {Path.GetFileName(inputPath)}: {ex.Message}");
+            return false;
+        }
+    }
+
+    static ImageFormat GetImageFormat(string filePath)
+    {
+        string extension = Path.GetExtension(filePath).ToLower();
+        return extension switch
+        {
+            ".png" => ImageFormat.Png,
+            ".jpg" or ".jpeg" => ImageFormat.Jpeg,
+            _ => ImageFormat.Jpeg // по умолчанию
+        };
+    }
+
+    static void ApplyGrayscaleFilter(Bitmap bmp)
+    {
+        for (int y = 0; y < bmp.Height; y++)
+        {
+            for (int x = 0; x < bmp.Width; x++)
+            {
+                Color pixel = bmp.GetPixel(x, y);
+                byte luma = (byte)(pixel.R * 0.2126f + pixel.G * 0.7152f + pixel.B * 0.0722f);
+                bmp.SetPixel(x, y, Color.FromArgb(luma, luma, luma));
+            }
+        }
+    }
+
+    static IEnumerable<IEnumerable<T>> SplitIntoBatches<T>(IEnumerable<T> source, int batchSize)
+    {
+        var batch = new List<T>(batchSize);
+        foreach (var item in source)
+        {
+            batch.Add(item);
+            if (batch.Count >= batchSize)
+            {
+                yield return batch;
+                batch = new List<T>(batchSize);
+            }
+        }
+        if (batch.Count > 0)
+            yield return batch;
+    }
+}
